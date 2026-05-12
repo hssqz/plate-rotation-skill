@@ -34,6 +34,58 @@
 
 ---
 
+## Quick Start · 60 秒上手
+
+### ◉ Step 1 — Install
+
+```bash
+# ── 方式 A · 推荐 ── npx skills (兼容 40+ AI agent) ────────────
+npx skills add hssqz/plate-rotation-skill
+
+# ── 方式 B ── 直接 clone 到 Claude skills 目录 ─────────────────
+git clone https://github.com/hssqz/plate-rotation-skill.git \
+  ~/.claude/skills/plate-rotation
+```
+
+### ◉ Step 2 — Verify
+
+```bash
+python3 ~/.claude/skills/plate-rotation/scripts/platerotat.py today --n 5
+```
+
+看到类似下方的当日 Top5 板块表格即安装成功:
+
+```text
+┌───────┬──────────────────┬─────────┬──────────────┐
+│  RANK │  CODE   NAME     │  VALUE  │  TYPE        │
+├───────┼──────────────────┼─────────┼──────────────┤
+│   #1  │  801807 算力     │  87.42  │  strength    │
+│   #2  │  801660 通信     │  76.31  │  strength    │
+│   #3  │  886084 F5G概念  │  68.55  │  strength    │
+│   #4  │  803023 AI 应用  │  61.20  │  strength    │
+│   #5  │  885998 光纤     │  54.83  │  strength    │
+└───────┴──────────────────┴─────────┴──────────────┘
+```
+
+### ◉ Step 3 — Talk to Claude
+
+打开 Claude Code, 直接问:
+
+> 「**今天最强板块前 10**」<br>
+> 「**算力这 20 天谁是真龙头?**」
+
+skill 会自动加载, 分析师人格立即上岗。
+
+### ◉ 依赖
+
+| 项 | 要求 | 说明 |
+|---|---|---|
+| Python | `3.9+` | 用了 PEP 585 类型语法 (`dict[str]` / `list[dict]`) |
+| 第三方包 | **无** | stdlib only, 不需要 `pip install` |
+| 网络 | 公网直连 | 国内无需特殊配置, 后端只校验 Referer (已自动注入) |
+
+---
+
 ## Capabilities · 能力四件套
 
 <table align="center">
@@ -228,58 +280,6 @@ skill 直接对接 **同花顺 (THS) + 开盘啦 (KAIPAN)** 双源板块轮动�
 </div>
 
 > 看 4 条曲线**哪条在升、哪条在降, 资金切换信号一目了然**。`—` 表示当日未上榜 (服务端用 `value=10.5 + symbol=wu.png` 标记, parsers 已处理为可读形态)。
-
----
-
-## Quick Start · 60 秒上手
-
-### ◉ Step 1 — Install
-
-```bash
-# ── 方式 A · 推荐 ── npx skills (兼容 40+ AI agent) ────────────
-npx skills add hssqz/plate-rotation-skill
-
-# ── 方式 B ── 直接 clone 到 Claude skills 目录 ─────────────────
-git clone https://github.com/hssqz/plate-rotation-skill.git \
-  ~/.claude/skills/plate-rotation
-```
-
-### ◉ Step 2 — Verify
-
-```bash
-python3 ~/.claude/skills/plate-rotation/scripts/platerotat.py today --n 5
-```
-
-看到类似下方的当日 Top5 板块表格即安装成功:
-
-```text
-┌───────┬──────────────────┬─────────┬──────────────┐
-│  RANK │  CODE   NAME     │  VALUE  │  TYPE        │
-├───────┼──────────────────┼─────────┼──────────────┤
-│   #1  │  801807 算力     │  87.42  │  strength    │
-│   #2  │  801660 通信     │  76.31  │  strength    │
-│   #3  │  886084 F5G概念  │  68.55  │  strength    │
-│   #4  │  803023 AI 应用  │  61.20  │  strength    │
-│   #5  │  885998 光纤     │  54.83  │  strength    │
-└───────┴──────────────────┴─────────┴──────────────┘
-```
-
-### ◉ Step 3 — Talk to Claude
-
-打开 Claude Code, 直接问:
-
-> 「**今天最强板块前 10**」<br>
-> 「**算力这 20 天谁是真龙头?**」
-
-skill 会自动加载, 分析师人格立即上岗。
-
-### ◉ 依赖
-
-| 项 | 要求 | 说明 |
-|---|---|---|
-| Python | `3.9+` | 用了 PEP 585 类型语法 (`dict[str]` / `list[dict]`) |
-| 第三方包 | **无** | stdlib only, 不需要 `pip install` |
-| 网络 | 公网直连 | 国内无需特殊配置, 后端只校验 Referer (已自动注入) |
 
 ---
 
