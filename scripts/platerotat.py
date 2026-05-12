@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+[INPUT]: 依赖同目录 fetch.py (subprocess 调用) + parsers.py (5 个 helper)
+[OUTPUT]: 对外暴露 today_top / find_dragon_kings / top1_curve / plate_strength 4 个高级函数 + CLI
+[POS]: scripts/ 的最高层封装,组合 fetch+parsers,给 Agent / 用户提供 "一个意图一个函数" 入口
+[PROTOCOL]: 变更时更新此头部,然后检查 CLAUDE.md
+"""
 # ==================================================================
 # plate-rotation 高级 API + CLI
 #
@@ -17,8 +23,15 @@
 #     platerotat.py wangking 886084 --days 20     # 板块妖王榜
 #     platerotat.py curve --from kaipan           # Top5 板块 N 日排名变化
 #     platerotat.py strength 886084               # 板块强度+量能时序
+#
+# 运行时校验 (2026-05-12):
+#   每个高级 helper 在解析完成后做一次 sanity check, 命中空数据 / 缺关键字段
+#   时通过 stderr 输出明确的 "PR-EMPTY: ..." 警告, 帮助下游 Agent 区分:
+#     - 节假日 / 参数 days 超前 → 接口正常但当日无数据
+#     - 板块代码跨源错传 → 88x 传到 kaipan 源会拿到空
+#     - 上游接口异常 → response 非 dict 或缺顶层字段
 # ==================================================================
-import argparse, json, os, subprocess, sys
+import argparse, datetime, json, os, subprocess, sys
 from typing import Literal, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -57,6 +70,33 @@ def _call(host: str, path: str, *kv: str) -> dict:
         sys.exit(f"[platerotat] non-JSON from {path}: {e}\n{txt[:300]}")
 
 
+# ============== 运行时校验工具 ==================================
+
+def _warn(tag: str, msg: str) -> None:
+    """统一警告通道。下游 Agent 可 grep 'PR-EMPTY' / 'PR-WARN' 识别。"""
+    print(f"[platerotat] {tag}: {msg}", file=sys.stderr)
+
+
+def _is_weekend(d: Optional[datetime.date] = None) -> bool:
+    d = d or datetime.date.today()
+    return d.weekday() >= 5  # 5=Sat, 6=Sun
+
+
+def _hint_for_empty(source: Optional[str], platecode: Optional[str]) -> str:
+    """对空数据给出最可能的 3 类原因提示。stdlib only, 不查交易日历,只给方向。"""
+    parts = []
+    if _is_weekend():
+        parts.append("今天是周末")
+    if platecode and source:
+        prefix_ok = (platecode.startswith("88") and source == "ths") \
+                    or (platecode.startswith(("80", "803")) and source == "kaipan")
+        if not prefix_ok:
+            parts.append(f"板块前缀 {platecode[:3]} 与 source={source} 可能不匹配")
+    if not parts:
+        parts.append("可能是节假日 / 参数 days 超前 / 上游接口临时异常")
+    return ";".join(parts)
+
+
 # ============== 高级 helper #1: today_top ========================
 
 def today_top(source: Source = "kaipan", n: int = 10, days: int = 20) -> list[dict]:
@@ -73,7 +113,11 @@ def today_top(source: Source = "kaipan", n: int = 10, days: int = 20) -> list[di
         其中 value_type='pct' 时 value 形如 '4.94%',='score' 时形如 '15199'。
     """
     data = _call("main", "/api/getPlateRotatData", f"from={source}", f"days={days}")
-    return parse_plate_rotat(data, source=source)[:n]
+    rows = parse_plate_rotat(data, source=source)[:n]
+    if not rows:
+        _warn("PR-EMPTY",
+              f"today_top(source={source}) 返回空 → {_hint_for_empty(source, None)}")
+    return rows
 
 
 # ============== 高级 helper #2: find_dragon_kings ================
@@ -105,12 +149,26 @@ def find_dragon_kings(platecode: str, days: int = 20, top_n: int = 10) -> dict:
     prd = _call("main", "/api/getPlateRotatData", f"from={source}", f"days={days}")
     lng = _call("main", "/api/getLongByPlate", f"platecode={platecode}", f"days={days}")
     dates = parse_plate_rotat_dates(prd)
+    kings = rank_plate_long_persistence(lng, dates, top_n=top_n)
+    heads = parse_plate_long_heads(lng, dates)
+
+    # ---- 运行时校验: dates 空 / kings 空 / heads 全空 ----
+    if not dates:
+        _warn("PR-EMPTY",
+              f"find_dragon_kings({platecode}) dates 为空 → 上游主表无回退,"
+              f"{_hint_for_empty(source, platecode)}")
+    elif not kings and all(not h.get("heads") for h in heads):
+        _warn("PR-EMPTY",
+              f"find_dragon_kings({platecode}) 近 {days} 天均无领涨 → "
+              f"该板块持续未活跃,或 platecode 跨源错传 ({_hint_for_empty(source, platecode)})")
+
     return {
         "platecode": platecode,
+        "source": source,  # 透出实际使用的 source, 方便下游断言
         "days": days,
         "dates": dates,
-        "kings": rank_plate_long_persistence(lng, dates, top_n=top_n),
-        "daily_heads": parse_plate_long_heads(lng, dates),
+        "kings": kings,
+        "daily_heads": heads,
     }
 
 
@@ -132,6 +190,9 @@ def top1_curve(source: Source = "kaipan", days: int = 20) -> dict:
     # 'name' 字段是 {1: 'xxx', 2: 'xxx'}, 提取成有序 list 方便用
     name_dict = data.get("name") or {}
     data["top5_names"] = [name_dict.get(str(i)) for i in range(1, 6) if str(i) in name_dict]
+    if not data["top5_names"]:
+        _warn("PR-EMPTY",
+              f"top1_curve(source={source}) 缺 name 字段 → {_hint_for_empty(source, None)}")
     return data
 
 
@@ -146,7 +207,15 @@ def plate_strength(platecode: str, days: int = 20) -> dict:
 
     Returns: 原 JSON 透传 (legend, date, ...);上层应用按需读 series。
     """
-    return _call("main", "/api/getPlateDayChart", f"platecode={platecode}", f"days={days}")
+    data = _call("main", "/api/getPlateDayChart", f"platecode={platecode}", f"days={days}")
+    # legend=null 表示当日板块未活跃;date 为空 = 上游接口异常
+    if not data.get("date"):
+        _warn("PR-EMPTY",
+              f"plate_strength({platecode}) date 列为空 → 板块代码可能无效或上游异常")
+    elif data.get("legend") is None:
+        _warn("PR-WARN",
+              f"plate_strength({platecode}) legend=null → 该板块近 {days} 天均未活跃")
+    return data
 
 
 # ============== CLI ==============================================

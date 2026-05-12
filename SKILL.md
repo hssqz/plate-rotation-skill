@@ -101,6 +101,41 @@ description: A 股板块轮动 & 强势板块识别。覆盖 4 个接口 + 4 个
 
 ---
 
+# 协作协议: 扫多板块时如何分发 sub-agent
+
+当任务涉及**多个独立板块**(例如同时调研算力 / 通信 / 机器人 / 机器视觉 / 数控机床 5 个板块),
+**必须**分发 sub-agent 并行抓取。主 agent 给 sub-agent 写 prompt 时要遵守:
+
+## 用词污染陷阱(防锚定)
+
+| ❌ 污染用词 | ✅ 精确用词 |
+|---|---|
+| 搜索 / 查询 板块 | 调用 `platerotat.py wangking <code>` |
+| 调研板块 | 取数据 + 校验 + 返回结构化结果 |
+| 看看 / 了解一下 | 拉取 N 个交易日 + 按 X 字段排序 |
+
+> 写"调研板块",主 agent 极可能改写成"**搜索**板块" → sub-agent 被锚定到 WebSearch → 撞反爬墙。
+> **必须**指向具体 CLI 子命令 + 具体参数。
+
+## 共享缓存约定
+
+所有 sub-agent 共享同一个 `~/.cache/plate-rotation/` 目录:
+- 同一交易日同参数请求,第二个 sub-agent 直接读缓存 (默认 1h TTL)
+- 主 agent 启动 sub-agent 前**不要** `cache clear`,否则白白翻倍 API 调用
+- 真要强刷新某个 sub-agent: 给它 `--no-cache` 而不是清空全局缓存
+
+## sub-agent prompt 范式
+
+```text
+[任务] 用 plate-rotation skill 拉取板块 {CODE} 的近 {DAYS} 日妖王榜。
+[命令] python3 ~/.claude/skills/plate-rotation/scripts/platerotat.py \
+       wangking {CODE} --days {DAYS} --json
+[返回] kings 数组前 5 名 + 当日 heads (date=今日的那一项)
+[禁止] 不要做趋势解读 / 不要凭印象写结论 / 不要 WebSearch
+```
+
+---
+
 # 工具弹药库
 
 以下是你完成上述分析所需的全部工具。**优先用 CLI**, 其次 Python helper, 最后才是底层 fetch.py。
@@ -128,6 +163,15 @@ python3 $PR curve --source kaipan --days 20
 python3 $PR strength 886084 --json
 
 # 任何子命令加 --json 输出原始结构,方便管道喂给 jq/python
+
+# ---- 缓存管理 (2026-05-12 新增) ----
+# 看缓存现状
+python3 $SKILL/scripts/cache.py stats
+# 清理 7 天以上旧缓存
+python3 $SKILL/scripts/cache.py clear --older 604800
+# 强制刷新 (盘中需要分钟级实时):
+python3 $SKILL/scripts/fetch.py main /api/getPlateRotatData from=ths days=10 --no-cache
+# 或环境变量全局关闭:  export PR_CACHE_DISABLE=1
 ```
 
 ## Python 用法
@@ -187,22 +231,33 @@ python3 $F main /api/getPlateDayChart platecode=886084 days=20
 python3 $F main /api/getPlateRotatData from=ths days=20 -v
 ```
 
-## 已知陷阱 (不要重复踩)
+## 已知陷阱 (摘要)
 
-1. **双源数值语义不同** — `from=ths` 返回带 `%` 的涨幅; `from=kaipan` 返回纯数字强度分。**正则 `[\d.\-]+%` 会漏开盘啦数据**, parsers 已用 `[\d.\-]+%?` 兼容。
+**完整 11 条领域陷阱清单见 `references/stock-facts.md`**。最关键的 3 条:
 
-2. **板块代码前缀强语义,不能跨源乱传**:
-   - `88x` = 同花顺板块 (886084 F5G 概念 / 885998 光纤概念)
-   - `80x` / `803x` = 开盘啦板块 (801807 算力 / 801660 通信 / 803023 AI 应用)
-   `find_dragon_kings()` 自动判别, 底层调时手动自检。
+1. **双源数值不可直接比较** — `ths` 涨幅% / `kaipan` 强度分,单位不同,只能各自排序。
+2. **板块代码前缀强语义** — `88x` 只能配 `from=ths`,`80x/803x` 只能配 `from=kaipan`;跨源传会拿空数据,`platerotat.py` 会输出 `PR-EMPTY` 警告。
+3. **HTML in JSON** — `html` 字段是 jQuery innerHTML 模板,用 `parsers.py`,不要重新正则逆向。
 
-3. **HTML in JSON** — `getPlateRotatData` / `getLongByPlate` 的 `html` 字段是 jQuery innerHTML 模板, 不是结构化 JSON。**用 `parsers.py`, 不要重复正则逆向**。
+## 运行时校验信号 (2026-05-12 新增)
 
-4. **当日无领涨** — `getLongByPlate` 某天 td 文本可能是 "当日无领涨" 而非 `<div class='kline'>`, parsers 已处理 (双 style + lookahead 兜底)。
+当 `platerotat.py` 检测到异常数据,会通过 stderr 输出标签:
 
-5. **value=10.5 + symbol=wu.png** — `getPlateRotatChart` 中表示当日**未上榜**, 不是排名 10.5。
+| 标签 | 含义 | Agent 应对 |
+|---|---|---|
+| `PR-EMPTY` | 接口返回空数据 / 跨源错传 / 节假日 | **不要凭印象编造**,如实告诉用户"接口空,可能是 X" |
+| `PR-WARN` | 数据正常但板块当日未活跃 | 可以分析,但要标注"该板块该日无领涨" |
 
-6. **鉴权** — 后端只校验 `Referer` (fetch.py 已自动注入), **裸调即可, 无需 cookie**。
+下游 Agent 看到 `PR-EMPTY` 必须停止分析,先回到用户确认意图。
+
+## 经验沉淀 (learned/)
+
+每次发现新坑或验证新模式,写进对应文件:
+- `learned/_meta.md` — 跨源经验
+- `learned/ths.md` — 同花顺源专属
+- `learned/kaipan.md` — 开盘啦源专属
+
+格式: `### YYYY-MM-DD <标题>` + 现象 / 根因 / 应对 / 教训。
 
 ## 文件清单
 
@@ -213,8 +268,9 @@ plate-rotation/
 ├── README.md         # GitHub 访客文档 (安装/触发/demo)
 ├── DISCLAIMER.md     # 数据使用免责 + 不构成投资建议
 ├── LICENSE           # MIT
-├── references/       # 4 接口 reference + 路由
-├── scripts/          # fetch.py + parsers.py + platerotat.py
+├── references/       # 4 接口 reference + 路由 + stock-facts.md 领域知识
+├── scripts/          # fetch.py + cache.py + parsers.py + platerotat.py
+├── learned/          # 经验沉淀 (_meta.md / ths.md / kaipan.md)
 └── tests/            # 在线集成测试集 (stdlib unittest)
 ```
 

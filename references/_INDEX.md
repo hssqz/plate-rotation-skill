@@ -9,6 +9,10 @@
 | ✅ [api_getlongbyplate](api_getlongbyplate.md) | `/api/getLongByPlate` | 单板块 N 日龙头股矩阵 | `platecode`, `days` |
 | ✅ [api_getplatedaychart](api_getplatedaychart.md) | `/api/getPlateDayChart` | 单板块 N 日强度+量能 ECharts | `platecode`, `days` |
 
+## 领域知识附录
+
+- 📖 [stock-facts.md](stock-facts.md) — A 股 11 条惰性事实 (双源/前缀/T+1/复权/数据延迟等),调用前先扫一遍
+
 ## 双源差异 (from 入参)
 
 | from | 数值字段含义 | 单位 | 适用板块 |
