@@ -25,5 +25,6 @@ Thumbs.db
 # Local debug / scratch
 *.log
 *.tmp
+*.bak
 scratch/
 .scratch/

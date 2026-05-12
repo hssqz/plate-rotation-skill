@@ -2,453 +2,186 @@
 
 # plate-rotation
 
-### A 股板块轮动分析师 · Claude Code Skill
-
-**双源对照 · 妖王识别 · 转折信号 · 终端风格**
+### 让 Claude 看懂今天的盘 · 一个 A 股板块轮动分析师 Skill
 
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-C53030?style=for-the-badge&logo=anthropic&logoColor=white)](https://docs.claude.com/en/docs/claude-code/overview)
 [![Python](https://img.shields.io/badge/Python-3.9+-15803D?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Dependencies](https://img.shields.io/badge/Deps-stdlib_only-EAB308?style=for-the-badge)](https://docs.python.org/3/library/)
 [![License](https://img.shields.io/badge/License-MIT-0F172A?style=for-the-badge)](LICENSE)
-[![Market](https://img.shields.io/badge/Market-A--Share-DC2626?style=for-the-badge)](#)
 [![Style](https://img.shields.io/badge/Style-Wind_Terminal-EAB308?style=for-the-badge&logo=tradingview&logoColor=black)](#)
 
 </div>
 
 ```text
-╔══════════════════════════════════════════════════════════════════╗
-║   PLATE ROTATION TERMINAL  ·  双源对照  ·  v1.0                  ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║   [+] 算力        +5.23%   ████████░░   ▲  LEAD     · 真主线    ║
-║   [+] F5G概念     +3.87%   ██████░░░░   ▲  HOT      · 妖板      ║
-║   [-] 光纤        -1.42%   ███░░░░░░░   ▼  COLD     · 退潮      ║
-║   [+] 通信        +2.15%   █████░░░░░   ▲  ACTIVE   · 接棒      ║
-║   [-] 芯片        -0.83%   ████░░░░░░   ▼  FADING   · 让位      ║
-║                                                                  ║
-║   SRC: 同花顺(THS) × 开盘啦(KAIPAN)  ·  CROSS-VALIDATED          ║
-╚══════════════════════════════════════════════════════════════════╝
+┌──────────────────────────────────────────────────────────────┐
+│   Q: 今天最强板块前 5, 谁是真主线 谁是妖板?                  │
+├──────────────────────────────────────────────────────────────┤
+│   #1 算力      +5.23%   ████████░░   ▲  真主线 · 双源都在    │
+│   #2 F5G概念   +3.87%   ██████░░░░   ▲  妖板  · 突然爆发     │
+│   #3 通信      +2.15%   █████░░░░░   ▲  接棒  · 产业链共振   │
+│   #4 光纤      -1.42%   ███░░░░░░░   ▼  退潮  · 老热点褪色   │
+│   #5 芯片      -0.83%   ████░░░░░░   ▼  让位  · 资金切换中   │
+├──────────────────────────────────────────────────────────────┤
+│   SRC: 同花顺(THS) × 开盘啦(KAIPAN)   · CROSS-VERIFIED       │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-> **一行命令出结论** — 把 4 个公开行情接口封装成 4 个高级 helper + 1 个 CLI, 配套一个**顶尖板块轮动分析师人格** (龙虎榜游资盘感 + 学院派结构框架双视角), 让 Claude / Claude Code 加载后用自然语言就能完成"今日 Top / 妖王榜 / 排名变化 / 板块强度"四件套。
+> **不止给排名,更给「形态判断」** — 真主线 / 妖板 / 接棒 / 让位 四象限自动贴标, 不是冷冰冰的涨幅榜。
+
+- **双数据源交叉验证, 反幻觉** — 同花顺看当日爆发 + 开盘啦看持续性, Claude 必须双源对得上才下结论
+- **游资盘感 + 学院派框架** — 内置分析师人格, 看到"过去 10 天没上榜今天 #1"会自动喊出"妖板形态"
+- **零依赖纯 stdlib** — 一行命令装好, 不用 pip, 不用 API key, 后端只校验 Referer 自动注入
+
+装完打开 Claude Code 直接问: **「今天最强板块前 5, 谁是妖王?」**
 
 ---
 
-## Quick Start · 60 秒上手
+## Install · 30 秒
 
-### ◉ Step 1 — Install
+**① 装**
 
 ```bash
-# ── 方式 A · 推荐 ── npx skills (兼容 40+ AI agent) ────────────
+# 方式 A · 推荐 (兼容 40+ AI agent)
 npx skills add hssqz/plate-rotation-skill
 
-# ── 方式 B ── 直接 clone 到 Claude skills 目录 ─────────────────
+# 方式 B · 直接 clone
 git clone https://github.com/hssqz/plate-rotation-skill.git \
   ~/.claude/skills/plate-rotation
 ```
 
-### ◉ Step 2 — Verify
+**② 验**
 
 ```bash
-python3 ~/.claude/skills/plate-rotation/scripts/platerotat.py today --n 5
+python3 ~/.claude/skills/plate-rotation/scripts/platerotat.py today --n 3
 ```
 
-看到类似下方的当日 Top5 板块表格即安装成功:
+看到类似这样的输出就装好了:
 
 ```text
-┌───────┬──────────────────┬─────────┬──────────────┐
-│  RANK │  CODE   NAME     │  VALUE  │  TYPE        │
-├───────┼──────────────────┼─────────┼──────────────┤
-│   #1  │  801807 算力     │  87.42  │  strength    │
-│   #2  │  801660 通信     │  76.31  │  strength    │
-│   #3  │  886084 F5G概念  │  68.55  │  strength    │
-│   #4  │  803023 AI 应用  │  61.20  │  strength    │
-│   #5  │  885998 光纤     │  54.83  │  strength    │
-└───────┴──────────────────┴─────────┴──────────────┘
+=== Top 3 板块 (source=kaipan, days=20) ===
+  # 1  801001  芯片      ↑ 24026
+  # 2  801660  通信      ↑ 12444
+  # 3  801314  ST板块    ↑ 10281
 ```
 
-### ◉ Step 3 — Talk to Claude
+**③ 问** — 在 Claude Code 里直接说人话, skill 会自动加载。
 
-打开 Claude Code, 直接问:
+---
 
-> 「**今天最强板块前 10**」<br>
-> 「**算力这 20 天谁是真龙头?**」
+## Capabilities · 四件套
 
-skill 会自动加载, 分析师人格立即上岗。
+skill 装好后, Claude 自动识别四类问题并选对接口。每个 helper 都是「问一句, 答一表」的模式:
 
-### ◉ 依赖
-
-| 项 | 要求 | 说明 |
+| Helper | 一句话 | 你这样问 Claude |
 |---|---|---|
-| Python | `3.9+` | 用了 PEP 585 类型语法 (`dict[str]` / `list[dict]`) |
-| 第三方包 | **无** | stdlib only, 不需要 `pip install` |
-| 网络 | 公网直连 | 国内无需特殊配置, 后端只校验 Referer (已自动注入) |
+| `today_top` | 今日最强 N 板块 (双源可切) | "今天涨幅最大的 10 个板块?" |
+| `find_dragon_kings` | 该板块 N 天谁最常当龙头 (妖王榜) | "算力这 20 天谁是真龙头?" |
+| `top1_curve` | Top5 板块 N 天排名变化曲线 | "Top 5 板块这 20 天怎么轮动的?" |
+| `plate_strength` | 单板块 N 天强度 + 量能时序 | "F5G 概念 20 天强度和量能?" |
 
----
-
-## Capabilities · 能力四件套
-
-<table align="center">
-<tr>
-<td align="center" width="25%">
-
-### 今日 Top N
-**`today_top()`**
-
-双源对照排行榜<br>
-THS 涨幅% / KAIPAN 强度
-
-**看赛道当下**
-
-</td>
-<td align="center" width="25%">
-
-### 妖王榜
-**`find_dragon_kings()`**
-
-跨 N 天龙头持续性<br>
-找真核心 / 接力 / 妖股
-
-**找真核心**
-
-</td>
-<td align="center" width="25%">
-
-### 排名曲线
-**`top1_curve()`**
-
-Top5 板块 N 日轨迹<br>
-看赛道切换断点
-
-**抓转折信号**
-
-</td>
-<td align="center" width="25%">
-
-### 板块强度
-**`plate_strength()`**
-
-单板块强度+量能时序<br>
-ECharts 数据流
-
-**看板块健康**
-
-</td>
-</tr>
-</table>
+**方法论核心** — 为什么要两个数据源:
 
 ```text
-─── 方法论核心 ─────────────────────────────────────────────────────
-  KAIPAN  →  "这条赛道还在不在跑"   (强度分 = 持续性)
-  THS     →  "今天谁在爆发"          (涨幅% = 当日资金集中度)
-  双源同时上榜 = 真主线  ·  仅 KAIPAN = 退潮中  ·  仅 THS = 偶发热点
-─────────────────────────────────────────────────────────────────────
+  THS    (同花顺)  →  当日爆发   (涨幅 %)
+  KAIPAN (开盘啦)  →  持续性     (强度分)
+
+  → 两边都上榜 = 真主线
+  → 只在 THS    = 偶发热点 (妖板候选)
+  → 只在 KAIPAN = 老热点退潮中
 ```
 
-加载到 Claude / Claude Code 后, 直接用自然语言就能调度上面四件套:
+板块代码前缀决定走哪源, skill 自动判别, **不用记**:
 
-> 「今天最强板块前 10」<br>
-> 「算力板块这 20 天谁是真龙头?」<br>
-> 「Top5 板块这 20 天的排名变化趋势」<br>
-> 「通信和芯片现在谁在接棒?」
+- `88x` (同花顺概念) — `886084` F5G / `885998` 光纤 / `886033` 共封装光学
+- `80x · 803x` (开盘啦) — `801807` 算力 / `801660` 通信 / `803023` AI 应用
+
+跨源传错? 内置运行时校验会在 stderr 输出 `PR-EMPTY` 警告, **不让 Claude 凭印象编造**。
 
 ---
 
-## Live Data · 拿到的数据形态
+## Sample Output · 分析师人格
 
-skill 直接对接 **同花顺 (THS) + 开盘啦 (KAIPAN)** 双源板块轮动接口,
-**裸调即可** (后端只校验 Referer, fetch.py 已自动注入)。
-一行命令就能拉到下面这种粒度的原始数据:
+不是简单的"涨幅排行 + 表格", 是带**形态判断**和**转折信号**的复盘语言。你问 Claude:
 
-### 1. 双源 N 日板块排名矩阵
+> 「今天大盘最强的是谁, 真主线还是妖板?」
 
-<div align="center">
+Claude 调齐四件套后, 输出大致是这样:
 
-<table>
-<thead>
-<tr>
-  <th rowspan="2" align="center">排名</th>
-  <th colspan="3" align="center">开盘啦 (KAIPAN) · 强度分</th>
-  <th colspan="3" align="center">同花顺 (THS) · 涨幅%</th>
-</tr>
-<tr>
-  <th align="center">05-06</th>
-  <th align="center">05-07</th>
-  <th align="center">05-08</th>
-  <th align="center">05-06</th>
-  <th align="center">05-07</th>
-  <th align="center">05-08</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td align="center"><b>#1</b></td>
-  <td align="center">算力<br><sub>21132</sub></td>
-  <td align="center">算力<br><sub>15199</sub></td>
-  <td align="center">机器人<br><sub>16304</sub></td>
-  <td align="center">芯片<br><sub>+5.2%</sub></td>
-  <td align="center">通信<br><sub>+4.8%</sub></td>
-  <td align="center">机器人<br><sub>+6.3%</sub></td>
-</tr>
-<tr>
-  <td align="center"><b>#2</b></td>
-  <td align="center">芯片<br><sub>20799</sub></td>
-  <td align="center">通信<br><sub>14020</sub></td>
-  <td align="center">通信<br><sub>9084</sub></td>
-  <td align="center">算力<br><sub>+4.1%</sub></td>
-  <td align="center">芯片<br><sub>+3.5%</sub></td>
-  <td align="center">通信<br><sub>+3.9%</sub></td>
-</tr>
-<tr>
-  <td align="center"><b>#3</b></td>
-  <td align="center">一季报增长<br><sub>17808</sub></td>
-  <td align="center">机器人<br><sub>11635</sub></td>
-  <td align="center">商业航天<br><sub>7296</sub></td>
-  <td align="center">机器人<br><sub>+3.8%</sub></td>
-  <td align="center">商业航天<br><sub>+2.9%</sub></td>
-  <td align="center">商业航天<br><sub>+2.4%</sub></td>
-</tr>
-<tr>
-  <td align="center"><b>#4</b></td>
-  <td align="center">通信<br><sub>8950</sub></td>
-  <td align="center">芯片<br><sub>10732</sub></td>
-  <td align="center">ST板块<br><sub>7096</sub></td>
-  <td align="center">一季报增长<br><sub>+3.2%</sub></td>
-  <td align="center">机器人<br><sub>+2.7%</sub></td>
-  <td align="center">芯片<br><sub>+2.1%</sub></td>
-</tr>
-<tr>
-  <td align="center"><b>#5</b></td>
-  <td align="center">ST板块<br><sub>5838</sub></td>
-  <td align="center">ST板块<br><sub>6673</sub></td>
-  <td align="center">算力<br><sub>6217</sub></td>
-  <td align="center">通信<br><sub>+2.8%</sub></td>
-  <td align="center">一季报增长<br><sub>+2.5%</sub></td>
-  <td align="center">ST板块<br><sub>+1.9%</sub></td>
-</tr>
-</tbody>
-</table>
+**① 事实层 · 双源 Top 4**
 
-</div>
+| 排名 | 同花顺 (THS / 涨幅 %) | 开盘啦 (KAIPAN / 强度分) |
+|---|---|---|
+| #1 | 国家大基金持股   6.11% | 芯片        24026 |
+| #2 | F5G 概念         3.13% | 通信        12444 |
+| #3 | 光纤概念         2.87% | ST 板块     10281 |
+| #4 | 共封装光学       2.41% | 算力         9837 |
 
-> 同一天双源对照看: **双源同时上榜 = 真主线** · **仅 KAIPAN = 老热点退潮中** · **仅 THS = 偶发热点**
+**② 关键转折信号**
 
-### 2. 单板块强度时序 + 量能 (近 5 日)
+- 算力 `801807` 强度分 12 天稳定前 3, 但 ths 涨幅榜不见 — **老主线退潮信号**
+- F5G 概念 `886084` 前 10 天均未上榜, 今天突然 #2 — **典型妖板形态**
+- 通信 + F5G + 光纤三者同时进双榜 — **通信赛道产业链共振**, 不是孤立爆发
 
-```text
-板块强度  (开盘啦 KAIPAN · getPlateDayChart)
+**③ 一句话总结**
 
-   1500 │
-   1000 │                                       ●  1032
-    500 │                  ●  960
-        │
-      0 ┼─────────────────────────────────────────────────
-        │
-   -500 │  ●  -660
-        │
-  -1000 │                              ●  -1203
-        │
-  -1500 │              ●  -1472
-        └─────────────────────────────────────────────────
-            04-21    04-22    04-23    04-24    04-25
+> 今天的真相是 — 算力主线还在跑但接力到通信赛道, F5G 是赛道里资金集中爆发的**细分妖板**, **真主线是通信不是 F5G**。
 
+**④ 下一步**
 
-板块量能  (亿元)
-
-   8000 │  ████  8120
-   7500 │  ████        ████  7614
-   7000 │  ████        ████        ████  7733
-   6500 │  ████        ████        ████
-   6000 │  ████        ████        ████        ████  6443        ████  6071
-        └────────────────────────────────────────────────────────────────
-            04-21        04-22        04-23        04-24        04-25
-```
-
-> 完整数据为 **ECharts JSON** 格式, 直接喂给前端 ECharts / Highcharts 即可绘制双轴图。
-
-### 3. Top 板块 N 日排名变化 (近 20 日)
-
-<div align="center">
-
-| 板块 | 04-14 | 04-17 | 04-21 | 04-25 | 04-29 | 05-05 | 05-08 | 上榜次数 |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **芯片** | #3 | #7 | #4 | — | #3 | #2 | #9 | `20` |
-| **算力** | #1 | #3 | #2 | #6 | #5 | #1 | #5 | `19` |
-| **一季报增长** | — | #3 | #3 | — | #1 | #6 | #6 | `17` |
-| **通信** | #5 | #2 | #2 | #4 | #4 | #4 | #2 | `15` |
-
-</div>
-
-> 看 4 条曲线**哪条在升、哪条在降, 资金切换信号一目了然**。`—` 表示当日未上榜 (服务端用 `value=10.5 + symbol=wu.png` 标记, parsers 已处理为可读形态)。
-
----
-
-## 触发关键词 · Trigger Keywords
-
-skill 会在 Claude / Claude Code 检测到下列关键词时**自动加载**:
-
-<div align="center">
-
-![板块轮动](https://img.shields.io/badge/板块轮动-C53030?style=flat-square)
-![强势板块](https://img.shields.io/badge/强势板块-C53030?style=flat-square)
-![龙头股](https://img.shields.io/badge/龙头股-C53030?style=flat-square)
-![妖王](https://img.shields.io/badge/妖王-C53030?style=flat-square)
-![龙一龙二](https://img.shields.io/badge/龙一龙二-C53030?style=flat-square)
-![领涨股](https://img.shields.io/badge/领涨股-C53030?style=flat-square)
-![Top板块](https://img.shields.io/badge/Top板块-DC2626?style=flat-square)
-
-![板块强度](https://img.shields.io/badge/板块强度-15803D?style=flat-square)
-![板块切换](https://img.shields.io/badge/板块切换-15803D?style=flat-square)
-![轮动节奏](https://img.shields.io/badge/轮动节奏-15803D?style=flat-square)
-![热点板块](https://img.shields.io/badge/热点板块-15803D?style=flat-square)
-![板块代码](https://img.shields.io/badge/板块代码-15803D?style=flat-square)
-
-![算力](https://img.shields.io/badge/算力-EAB308?style=flat-square&labelColor=0F172A)
-![CPO](https://img.shields.io/badge/CPO-EAB308?style=flat-square&labelColor=0F172A)
-![PCB](https://img.shields.io/badge/PCB-EAB308?style=flat-square&labelColor=0F172A)
-![F5G概念](https://img.shields.io/badge/F5G概念-EAB308?style=flat-square&labelColor=0F172A)
-![886084](https://img.shields.io/badge/886084-EAB308?style=flat-square&labelColor=0F172A)
-![801807](https://img.shields.io/badge/801807-EAB308?style=flat-square&labelColor=0F172A)
-
-![getPlateRotatData](https://img.shields.io/badge/getPlateRotatData-0F172A?style=flat-square)
-![getLongByPlate](https://img.shields.io/badge/getLongByPlate-0F172A?style=flat-square)
-
-</div>
-
-> 也可以**显式调用**: 直接在对话里说 `用 plate-rotation skill 看看 ...`
-
----
-
-## 终端输出示例 · Terminal Output
-
-> 以下为**示例数据** (illustrative), 用于展示输出风格。真实接口数据每日不同。
-
-### ① CLI 原生输出
-
-```text
-$ python3 platerotat.py today --source kaipan --n 8
-═══════════════════════════════════════════════════════════════════
-  TODAY · KAIPAN STRENGTH RANKING                     8 sectors
-═══════════════════════════════════════════════════════════════════
-  #1   801807  算力          ▲  87.42   ████████░░   LEAD
-  #2   801660  通信          ▲  76.31   ███████░░░   ACTIVE
-  #3   886084  F5G概念       ▲  68.55   ██████░░░░   HOT
-  #4   803023  AI 应用       ▲  61.20   █████░░░░░   ACTIVE
-  #5   885998  光纤          ▲  54.83   █████░░░░░   ACTIVE
-  #6   801580  机器人        ▼  42.10   ████░░░░░░   FADING
-  #7   886037  减速器        ▲  39.85   ███░░░░░░░   COLD
-  #8   885502  芯片          ▼  31.20   ███░░░░░░░   COLD
-═══════════════════════════════════════════════════════════════════
-```
-
-### ② Claude 分析师人格叙述
-
-> 你: 「今天最强板块前 8, 给我看下双源对照, 找妖板」
-
-<table>
-<tr><td>
-
-**plate-rotation 分析师**
-
-**事实层** (KAIPAN 强度 + THS 涨幅% 双源对照)
-
-| 板块 | KAIPAN | THS | 形态 |
-|---|---|---|---|
-| 算力 (801807) | `#1` | `+5.23%` | ✓ 真主线 |
-| 通信 (801660) | `#2` | `+2.15%` | ✓ 接棒 |
-| F5G (886084) | `#3` | `+3.87%` | ✦ 妖板 |
-| 芯片 (885502) | `#8` | `-0.83%` | ✗ 让位 |
-
-**关键转折信号**
-
-- **算力**连续 13 天稳居 Top3, 今日 #1 — 主线**没断**
-- **F5G** 过去 10 天 7 天未上榜, 今日突然 #3 + 涨幅榜 #2 — **典型妖板形态** (一致性预期 + 流动性溢价)
-- **芯片**从昨天 #4 掉到 #8, 资金切换信号弹 — 留意是否承接到通信
-- 通信 #2 + F5G #3 + 光纤 #5 三层产业链共振, **健康轮动**
-
-**一句话总结**: 今天的真相是 — **算力主线还在跑, 通信接棒, F5G 是细分妖板, 芯片让位**。
-
-**下一步建议**:
 ```bash
-python3 platerotat.py wangking 801807   # 看算力龙头持续性
-python3 platerotat.py strength 886084   # 看 F5G 量能健康度
+# 看通信接棒后的核心标的, 谁是龙一谁是龙二
+python3 ~/.claude/skills/plate-rotation/scripts/platerotat.py wangking 801660 --days 20
 ```
 
-</td></tr>
-</table>
+> 数据为示例, 真实输出取决于当日行情。**不构成任何投资建议**, 详见下方 Risk 节。
 
 ---
 
-## DISCLAIMER · 重要声明
+## Data Sources & Discipline
+
+数据来自两个公开行情接口源, 无需 API key, 后端只校验 Referer (自动注入):
+
+| 数据源 | 数值含义 | 单位示例 | 适用板块前缀 |
+|---|---|---|---|
+| **同花顺 (THS)** | 当日板块涨幅 % | `4.94%` | `88x` |
+| **开盘啦 (KAIPAN)** | 板块强度分 (整数) | `15199` | `80x` / `803x` |
+
+**三条铁律** — 也是 Claude 装上 skill 后被**强制执行**的纪律:
+
+1. **真实调用, 禁止凭印象** — 即使问"昨天 / 上周", 必须工具调用拿真实数据, 不用训练知识填空
+2. **双源不可跨比** — `4.94%` 和 `15199` 单位不同, 只能各自排序, 不能说"A 比 B 强多少"
+3. **永远先列事实表格, 再讲逻辑解读** — 颠倒顺序 = 在用户没看到数据前先施加偏见
+
+完整方法论 / 13 条必守纪律 / 11 条领域陷阱:
+
+- [SKILL.md](SKILL.md) — 顶尖板块轮动分析师人格 + 四象限框架 + 工具弹药库
+- [references/stock-facts.md](references/stock-facts.md) — A 股 11 条领域惰性知识 (双源 / 前缀 / T+1 / 复权 / 涨跌停板规则)
+- [learned/](learned/) — 经验沉淀通道, 跨源经验 + 同花顺源 + 开盘啦源各一份
+
+---
+
+## Risk & License
 
 ```text
-╔══════════════════════════════════════════════════════════════════╗
-║  ⚠  RISK NOTICE  ·  请仔细阅读                                   ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  ▸ 数据来源: 第三方公开市场行情接口                              ║
-║    接口稳定性由上游决定, 不做任何承诺                            ║
-║                                                                  ║
-║  ▸ 用途定位: 仅供复盘与量化研究                                  ║
-║    本工具不构成任何投资建议                                      ║
-║                                                                  ║
-║  ▸ 责任归属: 用户基于本工具做出的交易决策                        ║
-║    由用户自行承担盈亏责任                                        ║
-║                                                                  ║
-║  ▸ 合规底线: 不绕过任何加密接口 / 不做高频压测 / 不反爬          ║
-║                                                                  ║
-╚══════════════════════════════════════════════════════════════════╝
+┌──────────────────────────────────────────────────────────────┐
+│   !!!  IMPORTANT RISK NOTICE  /  重要风险声明                │
+├──────────────────────────────────────────────────────────────┤
+│   · 数据来自第三方公开行情接口, 稳定性由上游决定, 无承诺     │
+│   · 分析仅供**复盘与研究**, **不构成任何投资建议**           │
+│   · 用户基于本工具的交易决策, 自负盈亏                       │
+│   · A 股市场风险大, 入市需谨慎                               │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-完整声明详见 [`DISCLAIMER.md`](DISCLAIMER.md)。
+详细免责见 [DISCLAIMER.md](DISCLAIMER.md)。
 
----
+**License** · [MIT](LICENSE) © 2026 hssqz1998
 
-## License & Contributing
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### License
-
-[MIT](LICENSE) © 2026 [@hssqz1998](https://github.com/hssqz)
-
-可商用 · 可修改 · 可再分发<br>
-保留版权与许可证声明即可。
-
-</td>
-<td width="50%" valign="top">
-
-### Contributing
-
-**欢迎提 issue / PR**:
-- 接口失效 / 数据异常 → 附 `fetch.py -v` 输出
-- 新增分析维度 → 先在 issue 讨论范围
-- 文档/typo → 直接 PR
-
-**不接受**:
-- 任何引入第三方依赖的改动 (stdlib only 原则)
-- 加密接口逆向 / 高频压测 / 反爬绕过
-
-</td>
-</tr>
-</table>
+**Contributing** · 欢迎 issue / PR。新接口请按 `references/api_*.md` 范式补 reference, 并在 `tests/` 加在线集成测试。新发现的领域陷阱沉淀到 `learned/`。
 
 ---
 
 <div align="center">
 
-**by [@hssqz1998](https://github.com/hssqz1998)** · A-share rhythm only
-
-```text
-─────  双源对照 · 妖王识别 · 转折信号  ─────
-  the map IS the terrain · GEB protocol
-─────────────────────────────────────────────
-```
-
-[![Stars](https://img.shields.io/github/stars/hssqz/plate-rotation-skill?style=social)](https://github.com/hssqz/plate-rotation-skill)
-[![Issues](https://img.shields.io/github/issues/hssqz/plate-rotation-skill?color=DC2626)](https://github.com/hssqz/plate-rotation-skill/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/hssqz/plate-rotation-skill?color=15803D)](https://github.com/hssqz/plate-rotation-skill/commits)
+`plate-rotation` · Built with the discipline of stock-skill-design
 
 </div>
